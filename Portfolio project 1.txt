@@ -1,0 +1,74 @@
+--Selecting data we are going to be using
+SELECT location, date, total_cases, new_cases, total_deaths,population FROM `sql-eda.Covid.coviddeaths` order by 1,2;
+
+--Total cases vs total Deaths
+--Shows the likelyhood of dying if you contract covid in my country
+SELECT location, date, total_cases, total_deaths, round((total_deaths/ total_cases) * 100, 2)  AS death_percentage FROM `sql-eda.Covid.coviddeaths` 
+where location = 'India'order by 1,2;
+
+--Total cases vs population
+--Shows what percentage of population got affected
+SELECT location, date, total_cases, population, (total_cases/population) * 100 AS PercentPopulationInfected FROM `sql-eda.Covid.coviddeaths` 
+--where location = 'Wales'
+order by 1,2;
+
+--Countries with highest infection rate compared to population
+SELECT location, population, MAX(total_cases) as HighestInfectionCount, MAX(total_cases/population) * 100  AS PercentPopulationInfected FROM `sql-eda.Covid.coviddeaths` 
+GROUP BY location,population
+order by PercentPopulationInfected desc;
+
+--Showing countries with highest death count per population
+SELECT location, MAX(total_deaths) as TotalDeathCount FROM `sql-eda.Covid.coviddeaths` 
+where continent is not Null
+GROUP BY location
+order by TotalDeathCount desc;
+
+--Analysis with continents
+-- showing continents with highest death counts
+
+SELECT continent, MAX(total_deaths) as TotalDeathCount FROM `sql-eda.Covid.coviddeaths` 
+where continent is not Null
+GROUP BY continent
+order by TotalDeathCount desc;
+
+--Global numbers
+--We are seeing the totalcases all over the world on a particular day
+/*SELECT  date, sum(new_cases) as total_cases, sum(new_deaths) as Total_death, Sum(new_deaths)/NULLIF(sum(new_cases),0) * 100  AS death_percentage
+FROM `sql-eda.Covid.coviddeaths`
+Where continent IS NOT Null
+GROUP BY date
+order by 1,2*/
+
+--We are seeing the totalcases all over the world
+SELECT  sum(new_cases) as total_cases, sum(new_deaths) as Total_death, Sum(new_deaths)/NULLIF(sum(new_cases),0) * 100  AS death_percentage
+FROM `sql-eda.Covid.coviddeaths`
+Where continent IS NOT Null
+order by 1,2;
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--total population vs newly vaccinated per day
+Select CD.continent, CD.Location, CD.date, CD.population, CV.new_vaccinations, sum(CV.new_vaccinations) OVER (Partition by CD.location order by CD.location,CD.date) as RollingPeopleVac
+from `sql-eda.Covid.coviddeaths` CD JOIN `sql-eda.CovidVacc.Covidvacc` CV
+ON CD.location = CV.location and CD.date = CV.date
+where CD.continent is not NULL
+order by 2,3;
+
+--USE CTE
+With PopvsVac
+as
+(
+  Select CD.continent, CD.Location, CD.date, CD.population, CV.new_vaccinations, sum(CV.new_vaccinations) OVER (Partition by CD.location order by CD.location,CD.date) as RollingPeopleVac
+  from `sql-eda.Covid.coviddeaths` CD JOIN `sql-eda.CovidVacc.Covidvacc` CV
+  ON CD.location = CV.location and CD.date = CV.date
+  where CD.continent is not NULL
+)
+select *,(RollingPeopleVac/population)*100 from PopvsVac
+
+
+
+
+
+
+
+
+
